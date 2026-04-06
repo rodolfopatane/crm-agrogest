@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import IndexPage from './pages/IndexPage'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
@@ -7,7 +7,7 @@ import ClienteFormPage from './pages/ClienteFormPage'
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<IndexPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -16,7 +16,7 @@ function App() {
         <Route path="/clientes/novo" element={<ClienteFormPage />} />
         <Route path="/clientes/editar/:id" element={<ClienteFormPage />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 
