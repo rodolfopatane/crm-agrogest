@@ -81,3 +81,127 @@ export async function deleteCliente(id) {
   writeAll(filtered);
   return true;
 }
+
+// ─── LEADS ──────────────────────────────────────────────────────────────────
+
+const LEADS_KEY = 'agrogest_leads';
+
+const SEED_LEADS = [
+  {
+    id: 1,
+    nome: 'Carlos Mendes',
+    empresa: 'Fazenda Boa Vista',
+    telefone: '(62) 99123-4567',
+    email: 'carlos@boavista.com',
+    origem: 'Indicação',
+    etapa: 'contato',
+    observacoes: 'Interessado em defensivos para soja.',
+    dataCriacao: '2026-04-01',
+  },
+  {
+    id: 2,
+    nome: 'Ana Ribeiro',
+    empresa: 'Agro Cerrado Ltda',
+    telefone: '(64) 98765-4321',
+    email: 'ana@agrocerrado.com.br',
+    origem: 'Site',
+    etapa: 'negociacao',
+    observacoes: 'Solicitou proposta para insumos de milho.',
+    dataCriacao: '2026-04-03',
+  },
+];
+
+function readLeads() {
+  const raw = localStorage.getItem(LEADS_KEY);
+  if (!raw) return null;
+  return JSON.parse(raw);
+}
+
+function writeLeads(leads) {
+  localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
+}
+
+export async function seedLeads() {
+  const existing = readLeads();
+  if (!existing) {
+    writeLeads(SEED_LEADS);
+  }
+}
+
+export async function getLeads() {
+  return readLeads() || [];
+}
+
+export async function getLeadById(id) {
+  const leads = await getLeads();
+  return leads.find((l) => l.id === Number(id)) || null;
+}
+
+export async function addLead(dados) {
+  const leads = await getLeads();
+  const nextId = leads.length === 0 ? 1 : Math.max(...leads.map((l) => l.id)) + 1;
+  const lead = { ...dados, id: nextId, dataCriacao: new Date().toISOString().slice(0, 10) };
+  leads.push(lead);
+  writeLeads(leads);
+  return lead;
+}
+
+export async function updateLead(id, dados) {
+  const leads = await getLeads();
+  const index = leads.findIndex((l) => l.id === Number(id));
+  if (index === -1) return null;
+  leads[index] = { ...leads[index], ...dados, id: Number(id) };
+  writeLeads(leads);
+  return leads[index];
+}
+
+export async function deleteLead(id) {
+  const leads = await getLeads();
+  const filtered = leads.filter((l) => l.id !== Number(id));
+  if (filtered.length === leads.length) return false;
+  writeLeads(filtered);
+  return true;
+}
+
+// ─── INTERAÇÕES ──────────────────────────────────────────────────────────────
+
+const INTERACOES_KEY = 'agrogest_interacoes';
+
+function readInteracoes() {
+  const raw = localStorage.getItem(INTERACOES_KEY);
+  if (!raw) return [];
+  return JSON.parse(raw);
+}
+
+function writeInteracoes(interacoes) {
+  localStorage.setItem(INTERACOES_KEY, JSON.stringify(interacoes));
+}
+
+export async function getInteracoesByEntidade(entidadeTipo, entidadeId) {
+  const todas = readInteracoes();
+  return todas.filter(
+    (i) => i.entidadeTipo === entidadeTipo && i.entidadeId === Number(entidadeId)
+  );
+}
+
+export async function addInteracao(dados) {
+  const todas = readInteracoes();
+  const nextId = todas.length === 0 ? 1 : Math.max(...todas.map((i) => i.id)) + 1;
+  const interacao = {
+    ...dados,
+    id: nextId,
+    entidadeId: Number(dados.entidadeId),
+    data: dados.data || new Date().toISOString().slice(0, 10),
+  };
+  todas.push(interacao);
+  writeInteracoes(todas);
+  return interacao;
+}
+
+export async function deleteInteracao(id) {
+  const todas = readInteracoes();
+  const filtered = todas.filter((i) => i.id !== Number(id));
+  if (filtered.length === todas.length) return false;
+  writeInteracoes(filtered);
+  return true;
+}

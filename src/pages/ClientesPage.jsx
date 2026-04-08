@@ -19,15 +19,11 @@ export default function ClientesPage() {
   return (
     <>
       <Navbar />
-      <div className="container mt-5">
-        <h2 className="mb-4">Clientes</h2>
-
-        <div className="mb-3">
-          <Link to="/dashboard" className="btn btn-secondary me-2">
-            Voltar
-          </Link>
+      <div className="container mt-4">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h2 className="mb-0">Clientes</h2>
           <Link to="/clientes/novo" className="btn btn-success">
-            Novo Cliente
+            + Novo
           </Link>
         </div>
 
@@ -58,6 +54,12 @@ export default function ClientesPage() {
                   <td>{c.cidade}</td>
                   <td>{c.estado}</td>
                   <td>
+                    <Link
+                      to={`/clientes/${c.id}`}
+                      className="btn btn-info btn-sm me-1"
+                    >
+                      Detalhes
+                    </Link>
                     <Link
                       to={`/clientes/editar/${c.id}`}
                       className="btn btn-warning btn-sm me-1"
