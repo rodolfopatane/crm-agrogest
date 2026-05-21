@@ -10,7 +10,6 @@ Sistema de gerenciamento de clientes (CRM) para o setor agrícola.
 ## Instalação e Execução
 
 ```bash
-cd frontend
 npm install
 npm run dev
 ```
