@@ -1,0 +1,153 @@
+// =============================================================
+// CRM AgroGest — Modelagem do Banco de Dados
+// Formato: DBML (dbdiagram.io)
+// Data: 2026-05-19
+// =============================================================
+
+Project agrogest_crm {
+  database_type: 'MySQL'
+  Note: '''
+    CRM para gestão de clientes e leads do setor agropecuário.
+    Módulos: Autenticação · Clientes · Leads (pipeline kanban) · Interações
+    IDs são UUID (char(36)) gerados pela aplicação.
+  '''
+}
+
+// -------------------------------------------------------------
+// ENUMERAÇÕES
+// -------------------------------------------------------------
+
+Enum origem_lead {
+  indicacao    [note: 'Indicação']
+  site         [note: 'Site']
+  rede_social  [note: 'Rede Social']
+  ligacao_fria [note: 'Ligação Fria']
+  outro        [note: 'Outro']
+}
+
+Enum etapa_lead {
+  novo        [note: '1 - Entrada no pipeline']
+  contato     [note: '2 - Primeiro contato realizado']
+  negociacao  [note: '3 - Em negociação']
+  ganho       [note: '4a - Negócio fechado']
+  perdido     [note: '4b - Negócio não convertido']
+}
+
+Enum servico {
+  renasem                       [note: 'Regularização para produção de mudas (RENASEM)']
+  sipeagro_estabelecimento      [note: 'Registro de estabelecimento (SIPEAGRO)']
+  ibama_ctf                     [note: 'IBAMA - CTF (Cadastro Técnico Federal)']
+  licencas_produtos_controlados [note: 'Licenças para Produtos Controlados']
+  sipeagro_produtos             [note: 'Registro de produtos (SIPEAGRO)']
+  responsabilidade_tecnica      [note: 'Responsabilidade Técnica']
+  iso                           [note: 'Implantação de normas ISO (9001 / 14001 / 45001 / ESG)']
+  auditoria_interna             [note: 'Auditoria interna']
+  business_intelligence         [note: 'Business Intelligence']
+  automacao_agropecuaria        [note: 'Automação agropecuária']
+  projetos_ia                   [note: 'Projetos de implementação de IA']
+  parceria_cana                 [note: 'Parceria com produtores de mudas de cana-de-açúcar']
+}
+
+Enum tipo_interacao {
+  ligacao   [note: 'Ligação telefônica']
+  email     [note: 'E-mail']
+  whatsapp  [note: 'WhatsApp']
+  reuniao   [note: 'Reunião presencial ou virtual']
+  outro     [note: 'Outro canal']
+}
+
+// -------------------------------------------------------------
+// TABELAS
+// -------------------------------------------------------------
+
+Table usuarios {
+  id            char(36)     [pk, note: 'UUID gerado pela aplicação']
+  nome          varchar(100) [not null]
+  email         varchar(150) [unique, not null]
+  senha_hash    varchar(255) [not null, note: 'Bcrypt hash - nunca armazenar senha em texto claro']
+  criado_em     timestamp    [not null, default: `now()`]
+  atualizado_em timestamp    [not null, default: `now()`]
+
+  Note: 'Usuários com acesso ao sistema CRM'
+}
+
+Table clientes {
+  id            char(36)     [pk, note: 'UUID gerado pela aplicação']
+  nome          varchar(150) [not null, note: 'Nome do contato principal']
+  razao_social  varchar(200) [not null]
+  cnpj          char(18)     [not null, unique, note: 'Formato: DD.DDD.DDD/DDDD-DD']
+  cpf           char(14)     [note: 'Formato: DDD.DDD.DDD-DD - opcional para pessoa física']
+  email         varchar(150) [not null]
+  telefone      varchar(15)  [not null, note: 'Formato: (DD) DDDDD-DDDD']
+  cidade        varchar(100) [not null]
+  estado        char(2)      [note: 'UF - ex.: SP, RJ, MG']
+  criado_em     timestamp    [not null, default: `now()`]
+  atualizado_em timestamp    [not null, default: `now()`]
+
+  indexes {
+    cnpj  [unique, name: 'uq_clientes_cnpj']
+    email [name: 'idx_clientes_email']
+  }
+
+  Note: 'Clientes ativos da AgroGest'
+}
+
+Table leads {
+  id                         char(36)    [pk, note: 'UUID gerado pela aplicação']
+  nome                       varchar(150) [not null, note: 'Nome do contato']
+  empresa                    varchar(200) [note: 'Nome da empresa do lead']
+  email                      varchar(150) [not null]
+  telefone                   varchar(15)  [not null, note: 'Formato: (DD) DDDDD-DDDD']
+  origem                     origem_lead  [not null, default: 'indicacao']
+  etapa                      etapa_lead   [not null, default: 'novo']
+  servico                    servico
+  observacoes                text
+  convertido_para_cliente_id char(36)     [note: 'UUID do cliente preenchido ao converter o lead']
+  data_criacao               date         [not null, default: `current_date`]
+  atualizado_em              timestamp    [not null, default: `now()`]
+
+  indexes {
+    etapa [name: 'idx_leads_etapa']
+    convertido_para_cliente_id [name: 'idx_leads_cliente_conversao']
+  }
+
+  Note: '''
+    Potenciais clientes em pipeline de vendas (kanban).
+    Fluxo de etapas: novo -> contato -> negociacao -> ganho | perdido.
+    Quando convertido, o campo convertido_para_cliente_id registra o vínculo.
+  '''
+}
+
+Table interacoes {
+  id         char(36)       [pk, note: 'UUID gerado pela aplicação']
+  cliente_id char(36)       [note: 'UUID preenchido quando a interação é com um cliente']
+  lead_id    char(36)       [note: 'UUID preenchido quando a interação é com um lead']
+  tipo       tipo_interacao [not null, default: 'ligacao']
+  descricao  text           [not null]
+  data       date           [not null]
+  criado_em  timestamp      [not null, default: `now()`]
+
+  indexes {
+    cliente_id [name: 'idx_interacoes_cliente']
+    lead_id    [name: 'idx_interacoes_lead']
+  }
+
+  Note: '''
+    Histórico de interações com clientes e leads.
+    Exatamente um dos campos cliente_id ou lead_id deve ser preenchido por registro
+    (regra de negócio: (cliente_id IS NOT NULL) <> (lead_id IS NOT NULL)).
+  '''
+}
+
+// -------------------------------------------------------------
+// RELACIONAMENTOS
+// -------------------------------------------------------------
+
+// leads → clientes (conversão)
+Ref: leads.convertido_para_cliente_id > clientes.id
+
+// interacoes → clientes (com cascade: excluir cliente apaga suas interações)
+Ref: interacoes.cliente_id > clientes.id [delete: cascade]
+
+// interacoes → leads (com cascade: excluir lead apaga suas interações)
+Ref: interacoes.lead_id > leads.id [delete: cascade]
